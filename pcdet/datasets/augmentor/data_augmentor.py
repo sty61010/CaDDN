@@ -111,8 +111,8 @@ class DataAugmentor(object):
 
         Returns:
         """
-        for cur_augmentor in self.data_augmentor_queue:
-            data_dict = cur_augmentor(data_dict=data_dict)
+        # for cur_augmentor in self.data_augmentor_queue:
+        #     data_dict = cur_augmentor(data_dict=data_dict)
 
         data_dict['gt_boxes'][:, 6] = common_utils.limit_period(
             data_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi

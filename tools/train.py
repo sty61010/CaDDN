@@ -99,7 +99,7 @@ def main():
         os.system('cp %s %s' % (args.cfg_file, output_dir))
 
     tb_log = SummaryWriter(log_dir=str(output_dir / 'tensorboard')) if cfg.LOCAL_RANK == 0 else None
-
+    print("dist_train: ", dist_train)
     # -----------------------create dataloader & network & optimizer---------------------------
     train_set, train_loader, train_sampler = build_dataloader(
         dataset_cfg=cfg.DATA_CONFIG,

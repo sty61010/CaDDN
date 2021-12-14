@@ -61,10 +61,10 @@ class DepthFFE(nn.Module):
                                                         depth_logits=depth_logits)
         batch_dict["frustum_features"] = frustum_features
 
-        if self.training:
-            self.forward_ret_dict["depth_maps"] = batch_dict["depth_maps"]
-            self.forward_ret_dict["gt_boxes2d"] = batch_dict["gt_boxes2d"]
-            self.forward_ret_dict["depth_logits"] = depth_logits
+        # if self.training:
+            # self.forward_ret_dict["depth_maps"] = batch_dict["depth_maps"]
+            # self.forward_ret_dict["gt_boxes2d"] = batch_dict["gt_boxes2d"]
+            # self.forward_ret_dict["depth_logits"] = depth_logits
         return batch_dict
 
     def create_frustum_features(self, image_features, depth_logits):
@@ -92,5 +92,6 @@ class DepthFFE(nn.Module):
         return frustum_features
 
     def get_loss(self):
-        loss, tb_dict = self.ddn_loss(**self.forward_ret_dict)
+        # loss, tb_dict = self.ddn_loss(**self.forward_ret_dict)
+        loss, tb_dict = 0, 0
         return loss, tb_dict

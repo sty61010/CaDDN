@@ -100,8 +100,10 @@ class DDNTemplate(nn.Module):
                 out [torch.Tensor(N, num_classes, H_out, W_out)]: Classification logits
                 aux [torch.Tensor(N, num_classes, H_out, W_out)]: Auxillary classification scores
         """
+        # print("images.shape: ", images.shape)
         # Preprocess images
         x = self.preprocess(images)
+        # print("images: ", images)
 
         # Extract features
         result = OrderedDict()

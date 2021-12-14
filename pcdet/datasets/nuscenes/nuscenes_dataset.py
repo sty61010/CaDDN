@@ -9,6 +9,11 @@ from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 from ...utils import common_utils
 from ..dataset import DatasetTemplate
 
+import os
+import torchvision
+from PIL import Image
+import torch
+from skimage import io, transform
 
 class NuScenesDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None):
@@ -20,7 +25,14 @@ class NuScenesDataset(DatasetTemplate):
         self.include_nuscenes_data(self.mode)
         if self.training and self.dataset_cfg.get('BALANCED_RESAMPLING', False):
             self.infos = self.balanced_infos_resampling(self.infos)
-
+        from nuscenes.nuscenes import NuScenes
+        from . import nuscenes_utils
+        self.nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
+        self.img_transform = torchvision.transforms.Compose(
+            [torchvision.transforms.ToTensor(),
+             torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)), ])
+        # self.cameras = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'] 
+        self.cameras = ['CAM_FRONT'] 
     def include_nuscenes_data(self, mode):
         self.logger.info('Loading NuScenes dataset')
         nuscenes_infos = []
@@ -137,7 +149,7 @@ class NuScenesDataset(DatasetTemplate):
                 'gt_names': info['gt_names'] if mask is None else info['gt_names'][mask],
                 'gt_boxes': info['gt_boxes'] if mask is None else info['gt_boxes'][mask]
             })
-
+        input_dict = self.update_data(data_dict=input_dict)
         data_dict = self.prepare_data(data_dict=input_dict)
 
         if self.dataset_cfg.get('SET_NAN_VELOCITY_TO_ZEROS', False):
@@ -147,6 +159,100 @@ class NuScenesDataset(DatasetTemplate):
 
         if not self.dataset_cfg.PRED_VELOCITY and 'gt_boxes' in data_dict:
             data_dict['gt_boxes'] = data_dict['gt_boxes'][:, [0, 1, 2, 3, 4, 5, 6, -1]]
+
+        return data_dict
+
+    def get_image(self, rec_token):
+        """
+        Load images for a sample
+        Args:
+            rec_token [str]: rec_token of the sample_data
+        Returns:
+            # image [np.ndarray(H, W, 3)]: RGB Image
+            images: torch.Tensor<float> (N, H, W, 3)
+
+        """
+        # img_file = self.root_split_path / 'image_2' / ('%s.png' % idx)
+        # assert img_file.exists()
+        # image = io.imread(img_file)
+        # image = image[:, :, :3]  # Remove alpha channel
+        # image = image.astype(np.float32)
+        # image /= 255.0
+
+        images = []
+        rec = self.nusc.get('sample', rec_token)
+
+        for cam in self.cameras:
+            camera_sample = self.nusc.get('sample_data', rec['data'][cam])
+
+            # Load image
+            image_filename = os.path.join(self.nusc.dataroot, camera_sample['filename'])
+            # img = Image.open(image_filename)
+            img = io.imread(image_filename)
+            img = transform.resize(img, (225, 400))
+            img = img.astype(np.float32)
+            img /= 255.0
+            # Normalise image
+            # normalised_img = self.img_transform(img)
+            # print("before normalised_img.shape: ", normalised_img.shape)
+            # normalised_img = normalised_img.permute(1, 2, 0)
+            # print("normalised_img.shape: ", normalised_img.shape)
+
+            images.append(img)
+
+        # images = torch.stack(images, dim=0)
+        images = np.stack(images, axis=0)
+        # print("images.shape: ", images.shape)
+        # print("img.shape: ", img.shape)
+        return img
+    def get_calib(self, rec_token):
+        """
+        Args:
+            rec_token [str]: rec_token of the sample_data
+        Returns:
+            lidar_to_cam [torch.Tensor(B, 4, 4)]: LiDAR to camera frame transformation
+            cam_to_img [torch.Tensor(B, 3, 4)]: Camera projection matrix
+
+        """
+
+        trans_lidar_to_cams = []
+        trans_cam_to_imgs = []
+        rec = self.nusc.get('sample', rec_token)
+        for cam in self.cameras:
+            camera_sample = self.nusc.get('sample_data', rec['data'][cam])
+
+
+
+        return trans_lidar_to_cams, trans_cam_to_imgs
+
+    def update_data(self, data_dict):
+        """
+        Updates data dictionary with additional items
+        Args:
+            data_dict [dict]: Data dictionary returned by __getitem__
+        Returns:
+            data_dict [dict]: Updated data dictionary returned by __getitem__
+        """
+        # Image
+        if "IMAGE" in self.dataset_cfg and self.dataset_cfg.IMAGE.ENABLED:
+            data_dict['images'] = self.get_image(data_dict["metadata"]['token'])
+
+        # Depth Map
+        # if "DEPTH_MAP" in self.dataset_cfg and self.dataset_cfg.DEPTH_MAP.ENABLED:
+            # data_dict['depth_maps'] = self.get_depth_map(data_dict["frame_id"])
+            # data_dict['depth_maps'] = self.get_image(data_dict["metadata"]['token'])
+        # Calibration matricies
+        # if "CALIB" in self.dataset_cfg and self.dataset_cfg.CALIB.ENABLED:
+        #     # Convert calibration matrices to homogeneous format and combine
+        #     calib = data_dict["calib"]
+        #     V2C = np.vstack((calib.V2C, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
+        #     R0 = np.hstack((calib.R0, np.zeros((3, 1), dtype=np.float32)))  # (3, 4)
+        #     R0 = np.vstack((R0, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
+        #     V2R = R0 @ V2C
+        #     data_dict.update({
+        #         "trans_lidar_to_cam": V2R,
+        #         "trans_cam_to_img": calib.P2
+        #     })
 
         return data_dict
 
@@ -202,8 +308,8 @@ class NuScenesDataset(DatasetTemplate):
         nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
         nusc_annos = nuscenes_utils.transform_det_annos_to_nusc_annos(det_annos, nusc)
         nusc_annos['meta'] = {
-            'use_camera': False,
-            'use_lidar': True,
+            'use_camera': True,
+            'use_lidar': False,
             'use_radar': False,
             'use_map': False,
             'use_external': False,
@@ -357,12 +463,15 @@ if __name__ == '__main__':
 
     if args.func == 'create_nuscenes_infos':
         dataset_cfg = EasyDict(yaml.load(open(args.cfg_file)))
-        ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+        # ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+        ROOT_DIR = Path('/media/cytseng/ssd1/Datasets/nuscenes').resolve()
         dataset_cfg.VERSION = args.version
         create_nuscenes_info(
             version=dataset_cfg.VERSION,
-            data_path=ROOT_DIR / 'data' / 'nuscenes',
-            save_path=ROOT_DIR / 'data' / 'nuscenes',
+            # data_path=ROOT_DIR / 'data' / 'nuscenes',
+            # save_path=ROOT_DIR / 'data' / 'nuscenes',
+            data_path=ROOT_DIR,
+            save_path=ROOT_DIR,
             max_sweeps=dataset_cfg.MAX_SWEEPS,
         )
 

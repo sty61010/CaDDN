@@ -1,4 +1,4 @@
-CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
+CLASS_NAMES: ["Car", "Pedestrian", "Cyclist"]
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
@@ -12,10 +12,10 @@ DATA_CONFIG:
           VOXEL_SIZE: [0.16, 0.16, 0.16]
 
     DATA_AUGMENTOR:
-        DISABLE_AUG_LIST: ['placeholder']
+        DISABLE_AUG_LIST: ["placeholder"]
         AUG_CONFIG_LIST:
             - NAME: random_image_flip
-              ALONG_AXIS_LIST: ['horizontal']
+              ALONG_AXIS_LIST: ["horizontal"]
 
     IMAGE:
         ENABLED: True
@@ -36,46 +36,38 @@ MODEL:
         DDN:
             NAME: DDNDeepLabV3
             BACKBONE_NAME: ResNet101
-            ARGS: {
-                "feat_extract_layer": "layer1",
-                "pretrained_path": "../checkpoints/deeplabv3_resnet101_coco-586e9e4e.pth"
+            ARGS:
+                {
+                    "feat_extract_layer": "layer1",
+                    "pretrained_path": "../checkpoints/deeplabv3_resnet101_coco-586e9e4e.pth",
+                }
+        CHANNEL_REDUCE:
+            {
+                "in_channels": 256,
+                "out_channels": 64,
+                "kernel_size": 1,
+                "stride": 1,
+                "bias": False,
             }
-        CHANNEL_REDUCE: {
-            "in_channels": 256,
-            "out_channels": 64,
-            "kernel_size": 1,
-            "stride": 1,
-            "bias": False
-        }
-        DISCRETIZE: {
-            "mode": LID,
-            "num_bins": 80,
-            "depth_min": 2.0,
-            "depth_max": 46.8
-        }
-        DDN_LOSS: {
-            'weight': 3.0,
-            'alpha': 0.25,
-            'gamma': 2.0,
-            'fg_weight': 13,
-            'bg_weight': 1
-        }
+        DISCRETIZE:
+            { "mode": LID, "num_bins": 80, "depth_min": 2.0, "depth_max": 46.8 }
+        DDN_LOSS:
+            {
+                "weight": 3.0,
+                "alpha": 0.25,
+                "gamma": 2.0,
+                "fg_weight": 13,
+                "bg_weight": 1,
+            }
 
     F2V:
         NAME: FrustumToVoxel
-        SAMPLER: {
-            "mode": "bilinear",
-            "padding_mode": "zeros"
-        }
+        SAMPLER: { "mode": "bilinear", "padding_mode": "zeros" }
 
     MAP_TO_BEV:
         NAME: Conv2DCollapse
         NUM_BEV_FEATURES: 64
-        ARGS: {
-            "kernel_size": 1,
-            "stride": 1,
-            "bias": False
-        }
+        ARGS: { "kernel_size": 1, "stride": 1, "bias": False }
 
     BACKBONE_2D:
         NAME: BaseBEVBackbone
@@ -94,38 +86,39 @@ MODEL:
         DIR_LIMIT_OFFSET: 0.0
         NUM_DIR_BINS: 2
 
-        ANCHOR_GENERATOR_CONFIG: [
-            {
-                'class_name': 'Car',
-                'anchor_sizes': [[3.9, 1.6, 1.56]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-1.78],
-                'align_center': False,
-                'feature_map_stride': 2,
-                'matched_threshold': 0.6,
-                'unmatched_threshold': 0.45
-            },
-            {
-                'class_name': 'Pedestrian',
-                'anchor_sizes': [[0.8, 0.6, 1.73]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-0.6],
-                'align_center': False,
-                'feature_map_stride': 2,
-                'matched_threshold': 0.5,
-                'unmatched_threshold': 0.35
-            },
-            {
-                'class_name': 'Cyclist',
-                'anchor_sizes': [[1.76, 0.6, 1.73]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-0.6],
-                'align_center': False,
-                'feature_map_stride': 2,
-                'matched_threshold': 0.5,
-                'unmatched_threshold': 0.35
-            }
-        ]
+        ANCHOR_GENERATOR_CONFIG:
+            [
+                {
+                    "class_name": "Car",
+                    "anchor_sizes": [[3.9, 1.6, 1.56]],
+                    "anchor_rotations": [0, 1.57],
+                    "anchor_bottom_heights": [-1.78],
+                    "align_center": False,
+                    "feature_map_stride": 2,
+                    "matched_threshold": 0.6,
+                    "unmatched_threshold": 0.45,
+                },
+                {
+                    "class_name": "Pedestrian",
+                    "anchor_sizes": [[0.8, 0.6, 1.73]],
+                    "anchor_rotations": [0, 1.57],
+                    "anchor_bottom_heights": [-0.6],
+                    "align_center": False,
+                    "feature_map_stride": 2,
+                    "matched_threshold": 0.5,
+                    "unmatched_threshold": 0.35,
+                },
+                {
+                    "class_name": "Cyclist",
+                    "anchor_sizes": [[1.76, 0.6, 1.73]],
+                    "anchor_rotations": [0, 1.57],
+                    "anchor_bottom_heights": [-0.6],
+                    "align_center": False,
+                    "feature_map_stride": 2,
+                    "matched_threshold": 0.5,
+                    "unmatched_threshold": 0.35,
+                },
+            ]
 
         TARGET_ASSIGNER_CONFIG:
             NAME: AxisAlignedTargetAssigner
@@ -136,12 +129,13 @@ MODEL:
             BOX_CODER: ResidualCoder
 
         LOSS_CONFIG:
-            LOSS_WEIGHTS: {
-                'cls_weight': 1.0,
-                'loc_weight': 2.0,
-                'dir_weight': 0.2,
-                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-            }
+            LOSS_WEIGHTS:
+                {
+                    "cls_weight": 1.0,
+                    "loc_weight": 2.0,
+                    "dir_weight": 0.2,
+                    "code_weights": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                }
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
@@ -157,9 +151,8 @@ MODEL:
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
 
-
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 4
+    BATCH_SIZE_PER_GPU: 2
     NUM_EPOCHS: 80
 
     OPTIMIZER: adam_onecycle

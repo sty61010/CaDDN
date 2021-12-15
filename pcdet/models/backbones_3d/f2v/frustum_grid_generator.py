@@ -119,6 +119,9 @@ class FrustumGridGenerator(nn.Module):
         image_shape, _ = torch.max(image_shape, dim=0)
         image_depth = torch.tensor([self.disc_cfg["num_bins"]], device=image_shape.device, dtype=image_shape.dtype)
         frustum_shape = torch.cat((image_depth, image_shape))
+        print("image_shape: ", image_shape)
+        print("frustum_grid: ", frustum_grid.shape)
+        print("frustum_shape: ", frustum_shape)
         frustum_grid = grid_utils.normalize_coords(coords=frustum_grid, shape=frustum_shape)
 
         # Replace any NaNs or infinites with out of bounds

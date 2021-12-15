@@ -14,6 +14,8 @@ import torchvision
 from PIL import Image
 import torch
 from skimage import io, transform
+from nuscenes.utils.geometry_utils import transform_matrix
+from pyquaternion import Quaternion
 
 class NuScenesDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None):
@@ -189,7 +191,7 @@ class NuScenesDataset(DatasetTemplate):
             image_filename = os.path.join(self.nusc.dataroot, camera_sample['filename'])
             # img = Image.open(image_filename)
             img = io.imread(image_filename)
-            img = transform.resize(img, (225, 400))
+            img = transform.resize(img, (112, 200))
             img = img.astype(np.float32)
             img /= 255.0
             # Normalise image
@@ -204,14 +206,21 @@ class NuScenesDataset(DatasetTemplate):
         images = np.stack(images, axis=0)
         # print("images.shape: ", images.shape)
         # print("img.shape: ", img.shape)
-        return img
+        return img, img.shape[:-1]
+
+    def get_trans_cam_to_imgs(self, K):
+        E = np.eye(3, 4)
+        # print("E: ", E)
+        trans_cam_to_imgs = K @ E
+        return trans_cam_to_imgs
+
     def get_calib(self, rec_token):
         """
         Args:
             rec_token [str]: rec_token of the sample_data
         Returns:
-            lidar_to_cam [torch.Tensor(B, 4, 4)]: LiDAR to camera frame transformation
-            cam_to_img [torch.Tensor(B, 3, 4)]: Camera projection matrix
+            lidar_to_cam [np.ndarray(B, 4, 4)]: LiDAR to camera frame transformation
+            cam_to_img [np.ndarray(B, 3, 4)]: Camera projection matrix
 
         """
 
@@ -220,8 +229,19 @@ class NuScenesDataset(DatasetTemplate):
         rec = self.nusc.get('sample', rec_token)
         for cam in self.cameras:
             camera_sample = self.nusc.get('sample_data', rec['data'][cam])
-
-
+            # From egopose to sensor
+            ref_cs_rec = self.nusc.get('calibrated_sensor',
+                                          camera_sample['calibrated_sensor_token'])
+            # Homogeneous transform from ego car frame to reference frame
+            trans_lidar_to_cams = transform_matrix(
+                ref_cs_rec['translation'], Quaternion(ref_cs_rec['rotation']), inverse=True
+            )
+            intrinsic = ref_cs_rec['camera_intrinsic']
+            trans_cam_to_imgs = self.get_trans_cam_to_imgs(intrinsic)
+            # # Homogeneous transformation matrix from global to _current_ ego car frame
+            # car_from_global = transform_matrix(
+            #     ref_pose_rec['translation'], Quaternion(ref_pose_rec['rotation']), inverse=True,
+            # )
 
         return trans_lidar_to_cams, trans_cam_to_imgs
 
@@ -235,24 +255,25 @@ class NuScenesDataset(DatasetTemplate):
         """
         # Image
         if "IMAGE" in self.dataset_cfg and self.dataset_cfg.IMAGE.ENABLED:
-            data_dict['images'] = self.get_image(data_dict["metadata"]['token'])
-
+            data_dict['images'], data_dict['image_shape'] = self.get_image(data_dict["metadata"]['token'])
+            # print("data_dict['image_shape']: ", data_dict['image_shape'])
         # Depth Map
         # if "DEPTH_MAP" in self.dataset_cfg and self.dataset_cfg.DEPTH_MAP.ENABLED:
             # data_dict['depth_maps'] = self.get_depth_map(data_dict["frame_id"])
             # data_dict['depth_maps'] = self.get_image(data_dict["metadata"]['token'])
         # Calibration matricies
-        # if "CALIB" in self.dataset_cfg and self.dataset_cfg.CALIB.ENABLED:
-        #     # Convert calibration matrices to homogeneous format and combine
-        #     calib = data_dict["calib"]
-        #     V2C = np.vstack((calib.V2C, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
-        #     R0 = np.hstack((calib.R0, np.zeros((3, 1), dtype=np.float32)))  # (3, 4)
-        #     R0 = np.vstack((R0, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
-        #     V2R = R0 @ V2C
-        #     data_dict.update({
-        #         "trans_lidar_to_cam": V2R,
-        #         "trans_cam_to_img": calib.P2
-        #     })
+        if "CALIB" in self.dataset_cfg and self.dataset_cfg.CALIB.ENABLED:
+            # Convert calibration matrices to homogeneous format and combine
+            # calib = data_dict["calib"]
+            # V2C = np.vstack((calib.V2C, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
+            # R0 = np.hstack((calib.R0, np.zeros((3, 1), dtype=np.float32)))  # (3, 4)
+            # R0 = np.vstack((R0, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
+            # V2R = R0 @ V2C
+            trans_lidar_to_cams, trans_cam_to_imgs = self.get_calib(data_dict["metadata"]["token"])
+            data_dict.update({
+                "trans_lidar_to_cam": trans_lidar_to_cams,
+                "trans_cam_to_img": trans_cam_to_imgs
+            })
 
         return data_dict
 

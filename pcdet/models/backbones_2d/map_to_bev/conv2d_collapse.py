@@ -1,4 +1,4 @@
-import torch
+# import torch
 import torch.nn as nn
 
 from pcdet.models.model_utils.basic_block_2d import BasicBlock2D
@@ -35,4 +35,6 @@ class Conv2DCollapse(nn.Module):
         bev_features = voxel_features.flatten(start_dim=1, end_dim=2)  # (B, C, Z, Y, X) -> (B, C*Z, Y, X)
         bev_features = self.block(bev_features)  # (B, C*Z, Y, X) -> (B, C, Y, X)
         batch_dict["spatial_features"] = bev_features
+        # print("voxel_features: ", voxel_features.shape)
+        # print("bev_features: ", bev_features.shape)
         return batch_dict

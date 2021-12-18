@@ -46,11 +46,11 @@ MODEL:
         NAME: DepthFFE
         DDN:
             NAME: DDNDeepLabV3
-            BACKBONE_NAME: ResNet101
+            BACKBONE_NAME: ResNet50
             ARGS:
                 {
                     "feat_extract_layer": "layer1",
-                    "pretrained_path": "../checkpoints/deeplabv3_resnet101_coco-586e9e4e.pth",
+                    "pretrained_path": "../checkpoints/deeplabv3_resnet50_coco-cd0a2569.pth",
                 }
         CHANNEL_REDUCE:
             {
@@ -82,10 +82,10 @@ MODEL:
 
     BACKBONE_2D:
         NAME: BaseBEVBackbone
-        LAYER_NUMS: [10, 10, 10]
+        LAYER_NUMS: [3, 5, 5]
         LAYER_STRIDES: [2, 2, 2]
         NUM_FILTERS: [64, 128, 256]
-        UPSAMPLE_STRIDES: [1, 2, 4]
+        UPSAMPLE_STRIDES: [0.5, 1, 2]
         NUM_UPSAMPLE_FILTERS: [128, 128, 128]
 
     DENSE_HEAD:
@@ -236,7 +236,7 @@ OPTIMIZATION:
     BATCH_SIZE_PER_GPU: 2
     NUM_EPOCHS: 80
 
-    OPTIMIZER: adam_onecycle
+    OPTIMIZER: adam_onecycle   
     LR: 0.001
     WEIGHT_DECAY: 0.01
     MOMENTUM: 0.9

@@ -1,6 +1,7 @@
 import copy
 import pickle
 from pathlib import Path
+from kornia.geometry import camera
 
 import numpy as np
 from tqdm import tqdm
@@ -11,11 +12,12 @@ from ..dataset import DatasetTemplate
 
 import os
 import torchvision
-from PIL import Image
-import torch
+# from PIL import Image
+# import torch
 from skimage import io, transform
 from nuscenes.utils.geometry_utils import transform_matrix
 from pyquaternion import Quaternion
+
 
 class NuScenesDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None):
@@ -28,13 +30,13 @@ class NuScenesDataset(DatasetTemplate):
         if self.training and self.dataset_cfg.get('BALANCED_RESAMPLING', False):
             self.infos = self.balanced_infos_resampling(self.infos)
         from nuscenes.nuscenes import NuScenes
-        from . import nuscenes_utils
         self.nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
         self.img_transform = torchvision.transforms.Compose(
             [torchvision.transforms.ToTensor(),
              torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)), ])
-        # self.cameras = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'] 
-        self.cameras = ['CAM_FRONT'] 
+        # self.cameras = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT']
+        self.cameras = ['CAM_FRONT']
+
     def include_nuscenes_data(self, mode):
         self.logger.info('Loading NuScenes dataset')
         nuscenes_infos = []
@@ -83,7 +85,7 @@ class NuScenesDataset(DatasetTemplate):
                 if name in self.class_names:
                     cls_infos_new[name].append(info)
 
-        cls_dist_new = {k: len(v) / len(sampled_infos) for k, v in cls_infos_new.items()}
+        # cls_dist_new = {k: len(v) / len(sampled_infos) for k, v in cls_infos_new.items()}
 
         return sampled_infos
 
@@ -191,7 +193,7 @@ class NuScenesDataset(DatasetTemplate):
             image_filename = os.path.join(self.nusc.dataroot, camera_sample['filename'])
             # img = Image.open(image_filename)
             img = io.imread(image_filename)
-            img = transform.resize(img, (112, 200))
+            img = transform.resize(img, (450, 800))
             img = img.astype(np.float32)
             img /= 255.0
             # Normalise image
@@ -219,7 +221,7 @@ class NuScenesDataset(DatasetTemplate):
         Args:
             rec_token [str]: rec_token of the sample_data
         Returns:
-            lidar_to_cam [np.ndarray(B, 4, 4)]: LiDAR to camera frame transformation
+            lidar_to_cam [np.ndarray(B, 4, 4)]: LiDAR TOP to camera frame transformation
             cam_to_img [np.ndarray(B, 3, 4)]: Camera projection matrix
 
         """
@@ -228,20 +230,40 @@ class NuScenesDataset(DatasetTemplate):
         trans_cam_to_imgs = []
         rec = self.nusc.get('sample', rec_token)
         for cam in self.cameras:
-            camera_sample = self.nusc.get('sample_data', rec['data'][cam])
-            # From egopose to sensor
-            ref_cs_rec = self.nusc.get('calibrated_sensor',
-                                          camera_sample['calibrated_sensor_token'])
+            # camera_sample = self.nusc.get('sample_data', rec['data'][cam])
+            # # From egopose to sensor
+            # ref_cs_rec = self.nusc.get('calibrated_sensor',
+            #                            camera_sample['calibrated_sensor_token'])
+
+            lidartop_record = self.nusc.get('sample_data', rec['data']['LIDAR_TOP'])
+            lidartop_cs_record = self.nusc.get('calibrated_sensor', lidartop_record['calibrated_sensor_token'])
+            lidartop_ego_record = self.nusc.get('ego_pose', lidartop_record['ego_pose_token'])
+
+            camera_record = self.nusc.get('sample_data', rec['data'][cam])
+            camera_cs_record = self.nusc.get('calibrated_sensor', camera_record['calibrated_sensor_token'])
+            camera_ego_record = self.nusc.get('ego_pose', camera_record['ego_pose_token'])
+
             # Homogeneous transform from ego car frame to reference frame
-            trans_lidar_to_cams = transform_matrix(
-                ref_cs_rec['translation'], Quaternion(ref_cs_rec['rotation']), inverse=True
+            l2le = transform_matrix(
+                lidartop_cs_record['translation'], Quaternion(lidartop_cs_record['rotation']), inverse=False
             )
-            intrinsic = ref_cs_rec['camera_intrinsic']
+            le2w = transform_matrix(
+                lidartop_ego_record['translation'], Quaternion(lidartop_ego_record['rotation']), inverse=False
+            )
+            se2w_I = transform_matrix(
+                camera_ego_record['translation'], Quaternion(camera_ego_record['rotation']), inverse=True
+            )
+            s2se_I = transform_matrix(
+                camera_cs_record['translation'], Quaternion(camera_cs_record['rotation']), inverse=True
+            )
+            # l2s = l2le * le2w * se2w.I * s2se.I
+            # implementation
+            # l2s = s2se.I * se2w.I * le2W * l2le
+
+            trans_lidar_to_cams = s2se_I @ se2w_I @ le2w @ l2le
+
+            intrinsic = camera_cs_record['camera_intrinsic']
             trans_cam_to_imgs = self.get_trans_cam_to_imgs(intrinsic)
-            # # Homogeneous transformation matrix from global to _current_ ego car frame
-            # car_from_global = transform_matrix(
-            #     ref_pose_rec['translation'], Quaternion(ref_pose_rec['rotation']), inverse=True,
-            # )
 
         return trans_lidar_to_cams, trans_cam_to_imgs
 
@@ -485,7 +507,7 @@ if __name__ == '__main__':
     if args.func == 'create_nuscenes_infos':
         dataset_cfg = EasyDict(yaml.load(open(args.cfg_file)))
         # ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
-        ROOT_DIR = Path('/media/cytseng/ssd1/Datasets/nuscenes').resolve()
+        ROOT_DIR = Path('/home/master/10/cytseng/data/sets/nuscenes').resolve()
         dataset_cfg.VERSION = args.version
         create_nuscenes_info(
             version=dataset_cfg.VERSION,
@@ -498,7 +520,8 @@ if __name__ == '__main__':
 
         nuscenes_dataset = NuScenesDataset(
             dataset_cfg=dataset_cfg, class_names=None,
-            root_path=ROOT_DIR / 'data' / 'nuscenes',
+            root_path=ROOT_DIR,
+            # root_path=ROOT_DIR / 'data' / 'nuscenes',
             logger=common_utils.create_logger(), training=True
         )
         nuscenes_dataset.create_groundtruth_database(max_sweeps=dataset_cfg.MAX_SWEEPS)

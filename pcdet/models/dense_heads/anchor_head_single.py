@@ -11,9 +11,10 @@ class AnchorHeadSingle(AnchorHeadTemplate):
             model_cfg=model_cfg, num_class=num_class, class_names=class_names, grid_size=grid_size, point_cloud_range=point_cloud_range,
             predict_boxes_when_training=predict_boxes_when_training
         )
+        # print("num_anchors_per_location: ", self.num_anchors_per_location)
 
         self.num_anchors_per_location = sum(self.num_anchors_per_location)
-
+        # print("input_channels: ", input_channels)
         self.conv_cls = nn.Conv2d(
             input_channels, self.num_anchors_per_location * self.num_class,
             kernel_size=1
@@ -40,6 +41,7 @@ class AnchorHeadSingle(AnchorHeadTemplate):
 
     def forward(self, data_dict):
         spatial_features_2d = data_dict['spatial_features_2d']
+        # print("spatial_features_2d.shape: ", spatial_features_2d.shape)
 
         cls_preds = self.conv_cls(spatial_features_2d)
         box_preds = self.conv_box(spatial_features_2d)

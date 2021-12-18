@@ -42,8 +42,7 @@ class SigmoidFocalClassificationLoss(nn.Module):
             loss: (B, #anchors, #classes) float tensor.
                 Sigmoid cross entropy loss without reduction
         """
-        loss = torch.clamp(input, min=0) - input * target + \
-            torch.log1p(torch.exp(-torch.abs(input)))
+        loss = torch.clamp(input, min=0) - input * target + torch.log1p(torch.exp(-torch.abs(input)))
         return loss
 
     def forward(self, input: torch.Tensor, target: torch.Tensor, weights: torch.Tensor):
@@ -60,6 +59,10 @@ class SigmoidFocalClassificationLoss(nn.Module):
             weighted_loss: (B, #anchors, #classes) float tensor after weighting.
         """
         pred_sigmoid = torch.sigmoid(input)
+
+        # print("pred_sigmoid.shape: ", pred_sigmoid.shape)
+        # print("target.shape: ", target.shape)
+
         alpha_weight = target * self.alpha + (1 - target) * (1 - self.alpha)
         pt = target * (1.0 - pred_sigmoid) + (1.0 - target) * pred_sigmoid
         focal_weight = alpha_weight * torch.pow(pt, self.gamma)

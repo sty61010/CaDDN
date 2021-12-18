@@ -204,9 +204,9 @@ def get_sample_data(nusc, sample_data_token, selected_anntokens=None):
 
     if sensor_record['modality'] == 'camera':
         cam_intrinsic = np.array(cs_record['camera_intrinsic'])
-        imsize = (sd_record['width'], sd_record['height'])
-    else:
-        cam_intrinsic = imsize = None
+    #     imsize = (sd_record['width'], sd_record['height'])
+    # else:
+    #     cam_intrinsic = imsize = None
 
     # Retrieve all sample annotations and map to sensor coordinate system.
     if selected_anntokens is not None:
@@ -404,10 +404,10 @@ def lidar_nusc_box_to_global(nusc, boxes, sample_token):
 
     sd_record = nusc.get('sample_data', sample_data_token)
     cs_record = nusc.get('calibrated_sensor', sd_record['calibrated_sensor_token'])
-    sensor_record = nusc.get('sensor', cs_record['sensor_token'])
+    # sensor_record = nusc.get('sensor', cs_record['sensor_token'])
     pose_record = nusc.get('ego_pose', sd_record['ego_pose_token'])
 
-    data_path = nusc.get_sample_data_path(sample_data_token)
+    # data_path = nusc.get_sample_data_path(sample_data_token)
     box_list = []
     for box in boxes:
         # Move box to ego vehicle coord system
@@ -474,7 +474,7 @@ def format_nuscene_results(metrics, class_names, version='default'):
         threshs = ', '.join(list(metrics['label_aps'][name].keys()))
         ap_list = list(metrics['label_aps'][name].values())
 
-        err_name =', '.join([x.split('_')[0] for x in list(metrics['label_tp_errors'][name].keys())])
+        err_name = ', '.join([x.split('_')[0] for x in list(metrics['label_tp_errors'][name].keys())])
         error_list = list(metrics['label_tp_errors'][name].values())
 
         result += f'***{name} error@{err_name} | AP@{threshs}\n'

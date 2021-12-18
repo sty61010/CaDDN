@@ -51,7 +51,7 @@ class DepthFFE(nn.Module):
         ddn_result = self.ddn(images)
         image_features = ddn_result["features"]
         depth_logits = ddn_result["logits"]
-
+        # print("images.shape: ", images.shape)
         # Channel reduce
         if self.channel_reduce is not None:
             image_features = self.channel_reduce(image_features)
@@ -60,11 +60,12 @@ class DepthFFE(nn.Module):
         frustum_features = self.create_frustum_features(image_features=image_features,
                                                         depth_logits=depth_logits)
         batch_dict["frustum_features"] = frustum_features
+        # print("frustum_features.shape", frustum_features.shape)
 
         # if self.training:
-            # self.forward_ret_dict["depth_maps"] = batch_dict["depth_maps"]
-            # self.forward_ret_dict["gt_boxes2d"] = batch_dict["gt_boxes2d"]
-            # self.forward_ret_dict["depth_logits"] = depth_logits
+        # self.forward_ret_dict["depth_maps"] = batch_dict["depth_maps"]
+        # self.forward_ret_dict["gt_boxes2d"] = batch_dict["gt_boxes2d"]
+        # self.forward_ret_dict["depth_logits"] = depth_logits
         return batch_dict
 
     def create_frustum_features(self, image_features, depth_logits):

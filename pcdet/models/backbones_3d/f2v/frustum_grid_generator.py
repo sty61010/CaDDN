@@ -27,7 +27,7 @@ class FrustumGridGenerator(nn.Module):
         self.pc_min = pc_range[0]
         self.pc_max = pc_range[1]
         self.voxel_size = (self.pc_max - self.pc_min) / self.grid_size
-
+        # print("grid_size: ", grid_size)
         # Create voxel grid
         self.depth, self.width, self.height = self.grid_size.int()
         self.voxel_grid = kornia.utils.create_meshgrid3d(depth=self.depth,
@@ -55,8 +55,8 @@ class FrustumGridGenerator(nn.Module):
         x_min, y_min, z_min = pc_min
         unproject = torch.tensor([[x_size, 0, 0, x_min],
                                   [0, y_size, 0, y_min],
-                                  [0,  0, z_size, z_min],
-                                  [0,  0, 0, 1]],
+                                  [0, 0, z_size, z_min],
+                                  [0, 0, 0, 1]],
                                  dtype=self.dtype)  # (4, 4)
 
         return unproject
@@ -116,16 +116,22 @@ class FrustumGridGenerator(nn.Module):
                                            cam_to_img=cam_to_img)
 
         # Normalize grid
+        # print("lidar_to_cam.shape: ", lidar_to_cam.shape)
+        # print("cam_to_img.shape: ", cam_to_img.shape)
+        # print("image_shape.shape: ", image_shape.shape)
+        # print("image_shape: ", image_shape)
+
         image_shape, _ = torch.max(image_shape, dim=0)
         image_depth = torch.tensor([self.disc_cfg["num_bins"]], device=image_shape.device, dtype=image_shape.dtype)
         frustum_shape = torch.cat((image_depth, image_shape))
-        print("image_shape: ", image_shape)
-        print("frustum_grid: ", frustum_grid.shape)
-        print("frustum_shape: ", frustum_shape)
+
+        # print("frustum_shape: ", frustum_shape)
         frustum_grid = grid_utils.normalize_coords(coords=frustum_grid, shape=frustum_shape)
 
         # Replace any NaNs or infinites with out of bounds
         mask = ~torch.isfinite(frustum_grid)
         frustum_grid[mask] = self.out_of_bounds_val
+
+        # print("frustum_grid: ", frustum_grid.shape)
 
         return frustum_grid

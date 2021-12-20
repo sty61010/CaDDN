@@ -56,7 +56,7 @@ def parse_config():
 
 
 def main():
-    torch.backends.cudnn.enabled = False
+    # torch.backends.cudnn.enabled = False
 
     args, cfg = parse_config()
     if args.launcher == 'none':

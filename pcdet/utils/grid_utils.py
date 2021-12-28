@@ -13,7 +13,8 @@ def normalize_coords(coords, shape):
     min_n = -1
     max_n = 1
     shape = torch.flip(shape, dims=[0])  # Reverse ordering of shape
-
+    # print("shape: ", shape)
     # Subtract 1 since pixel indexing from [0, shape - 1]
     norm_coords = coords / (shape - 1) * (max_n - min_n) + min_n
-    return norm_coords
+
+    return norm_coords.clamp(-1, 1)

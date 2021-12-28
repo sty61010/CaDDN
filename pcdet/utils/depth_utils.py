@@ -33,7 +33,7 @@ def bin_depths(depth_map, mode, depth_min, depth_max, num_bins, target=False):
         # Remove indicies outside of bounds
         mask = (indices < 0) | (indices > num_bins) | (~torch.isfinite(indices))
         indices[mask] = num_bins
-
+        
         # Convert to integer
         indices = indices.type(torch.int64)
     return indices

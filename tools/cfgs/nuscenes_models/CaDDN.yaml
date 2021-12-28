@@ -62,7 +62,7 @@ MODEL:
                 "bias": False,
             }
         DISCRETIZE:
-            { "mode": LID, "num_bins": 80, "depth_min": 2.0, "depth_max": 50.0 }
+            { "mode": LID, "num_bins": 80, "depth_min": -51.2, "depth_max": 51.2 }
         DDN_LOSS:
             {
                 "weight": 3.0,

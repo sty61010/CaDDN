@@ -32,7 +32,7 @@ class NuScenesDataset(DatasetTemplate):
         from nuscenes.nuscenes import NuScenes
         self.nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
         self.img_transform = torchvision.transforms.Compose(
-            [torchvision.transforms.Resize((112, 200)),
+            [torchvision.transforms.Resize((225, 400)),
              torchvision.transforms.ToTensor(),
              torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)), ])
         # self.cameras = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT']

@@ -20,7 +20,7 @@ DATA_CONFIG:
           REMOVE_OUTSIDE_BOXES: True
 
         - NAME: calculate_grid_size
-          VOXEL_SIZE: [0.16, 0.16, 0.16]
+          VOXEL_SIZE: [0.2, 0.2, 0.2]
 
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: ["placeholder"]
@@ -234,11 +234,11 @@ MODEL:
             NMS_POST_MAXSIZE: 500
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 2
+    BATCH_SIZE_PER_GPU: 3
     NUM_EPOCHS: 25
     
 
-    OPTIMIZER: adam  
+    OPTIMIZER: adam_onecycle
     LR: 0.0001
     WEIGHT_DECAY: 0.01
     MOMENTUM: 0.9

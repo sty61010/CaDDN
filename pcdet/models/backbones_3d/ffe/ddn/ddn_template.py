@@ -102,7 +102,7 @@ class DDNTemplate(nn.Module):
         """
         # print("images.shape: ", images.shape)
         # Preprocess images
-        # x = self.preprocess(images)
+        # x = self.p reprocess(images)
         x = images
         # print("images: ", images)
 

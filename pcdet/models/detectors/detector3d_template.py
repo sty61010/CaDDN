@@ -26,7 +26,7 @@ class Detector3DTemplate(nn.Module):
 
         self.module_topology = [
             'vfe', 'ffe', 'frustum_to_voxel', 'backbone_3d', 'map_to_bev_module', 'pfe',
-            'backbone_2d', 'dense_head',  'point_head', 'roi_head'
+            'backbone_2d', 'dense_head', 'point_head', 'roi_head'
         ]
 
     @property

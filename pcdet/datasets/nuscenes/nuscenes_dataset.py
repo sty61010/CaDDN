@@ -1,7 +1,7 @@
 import copy
 import pickle
 from pathlib import Path
-from kornia.geometry import camera
+# from kornia.geometry import camera
 
 import numpy as np
 from tqdm import tqdm
@@ -12,7 +12,7 @@ from ..dataset import DatasetTemplate
 
 import os
 import torchvision
-# from PIL import Image
+from PIL import Image
 # import torch
 from skimage import io, transform
 from nuscenes.utils.geometry_utils import transform_matrix
@@ -32,7 +32,8 @@ class NuScenesDataset(DatasetTemplate):
         from nuscenes.nuscenes import NuScenes
         self.nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
         self.img_transform = torchvision.transforms.Compose(
-            [torchvision.transforms.ToTensor(),
+            [torchvision.transforms.Resize((225, 400)),
+             torchvision.transforms.ToTensor(),
              torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)), ])
         # self.cameras = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT']
         self.cameras = ['CAM_FRONT']
@@ -153,6 +154,7 @@ class NuScenesDataset(DatasetTemplate):
                 'gt_names': info['gt_names'] if mask is None else info['gt_names'][mask],
                 'gt_boxes': info['gt_boxes'] if mask is None else info['gt_boxes'][mask]
             })
+
         input_dict = self.update_data(data_dict=input_dict)
         data_dict = self.prepare_data(data_dict=input_dict)
 
@@ -191,17 +193,19 @@ class NuScenesDataset(DatasetTemplate):
 
             # Load image
             image_filename = os.path.join(self.nusc.dataroot, camera_sample['filename'])
-            # img = Image.open(image_filename)
-            img = io.imread(image_filename)
-            img = transform.resize(img, (450, 800))
-            img = img.astype(np.float32)
-            img /= 255.0
-            # Normalise image
-            # normalised_img = self.img_transform(img)
-            # print("before normalised_img.shape: ", normalised_img.shape)
-            # normalised_img = normalised_img.permute(1, 2, 0)
-            # print("normalised_img.shape: ", normalised_img.shape)
+            img = Image.open(image_filename)
+            # img = io.imread(image_filename)
+            # img = transform.resize(img, (450, 800))
+            # img = img.astype(np.float32)
+            # img /= 255.0
 
+            # Normalise image
+            img = self.img_transform(img)
+            img = img.permute(1, 2, 0)
+
+            # img = img.numpy()
+            # print("img in nuscenedataset: ", img)
+            # print("img.shape in nuscenedataset: ", img.shape)
             images.append(img)
 
         # images = torch.stack(images, dim=0)
@@ -495,7 +499,7 @@ def create_nuscenes_info(version, data_path, save_path, max_sweeps=10):
 if __name__ == '__main__':
     import yaml
     import argparse
-    from pathlib import Path
+    # from pathlib import Path
     from easydict import EasyDict
 
     parser = argparse.ArgumentParser(description='arg parser')

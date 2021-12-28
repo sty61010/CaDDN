@@ -26,5 +26,6 @@ class Sampler(nn.Module):
             output_features [torch.Tensor(N, C, H_out, W_out)]: Output feature maps
         """
         # Sample from grid
-        output = F.grid_sample(input=input_features, grid=grid, mode=self.mode, padding_mode=self.padding_mode)
+        output = F.grid_sample(input=input_features, grid=grid, mode=self.mode,
+                               padding_mode=self.padding_mode, align_corners=False)
         return output

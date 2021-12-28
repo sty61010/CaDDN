@@ -51,6 +51,7 @@ MODEL:
                 {
                     "feat_extract_layer": "layer1",
                     "pretrained_path": "../checkpoints/deeplabv3_resnet50_coco-cd0a2569.pth",
+                    # "pretrained_path": "../checkpoints/deeplabv3_resnet101_coco-586e9e4e.pth",
                 }
         CHANNEL_REDUCE:
             {
@@ -237,8 +238,8 @@ OPTIMIZATION:
     NUM_EPOCHS: 25
     
 
-    OPTIMIZER: adam_onecycle   
-    LR: 0.001
+    OPTIMIZER: adam  
+    LR: 0.0001
     WEIGHT_DECAY: 0.01
     MOMENTUM: 0.9
 
@@ -252,4 +253,4 @@ OPTIMIZATION:
     LR_WARMUP: False
     WARMUP_EPOCH: 1
 
-    GRAD_NORM_CLIP: 10
+    GRAD_NORM_CLIP: 1.0

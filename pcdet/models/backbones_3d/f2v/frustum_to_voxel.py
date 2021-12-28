@@ -39,6 +39,7 @@ class FrustumToVoxel(nn.Module):
             batch_dict:
                 voxel_features [torch.Tensor(B, C, Z, Y, X)]: Image voxel features
         """
+
         # Generate sampling grid for frustum volume
         grid = self.grid_generator(lidar_to_cam=batch_dict["trans_lidar_to_cam"],
                                    cam_to_img=batch_dict["trans_cam_to_img"],
@@ -50,5 +51,8 @@ class FrustumToVoxel(nn.Module):
 
         # (B, C, X, Y, Z) -> (B, C, Z, Y, X)
         voxel_features = voxel_features.permute(0, 1, 4, 3, 2)
+
+        print("voxel_features: ", voxel_features)
+
         batch_dict["voxel_features"] = voxel_features
         return batch_dict

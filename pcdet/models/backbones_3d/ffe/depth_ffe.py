@@ -49,8 +49,13 @@ class DepthFFE(nn.Module):
         # Pixel-wise depth classification
         images = batch_dict["images"]
         ddn_result = self.ddn(images)
+        # print("ddn_result: ", ddn_result)
         image_features = ddn_result["features"]
         depth_logits = ddn_result["logits"]
+
+        # print("ddn_result[features]: ", ddn_result["features"])
+        # print("ddn_result[logits]: ", ddn_result["logits"])
+
         # print("images.shape: ", images.shape)
         # Channel reduce
         if self.channel_reduce is not None:
@@ -61,6 +66,7 @@ class DepthFFE(nn.Module):
                                                         depth_logits=depth_logits)
         batch_dict["frustum_features"] = frustum_features
         # print("frustum_features.shape", frustum_features.shape)
+        # print("frustum_features.shape", frustum_features)
 
         # if self.training:
         # self.forward_ret_dict["depth_maps"] = batch_dict["depth_maps"]

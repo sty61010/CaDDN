@@ -208,7 +208,7 @@ class DatasetTemplate(torch_data.Dataset):
                         pad_width = (pad_h, pad_w)
                         # Pad with nan, to be replaced later in the pipeline.
                         pad_value = np.nan
-
+                        # print("pad_width: ", pad_width)
                         if key == "images":
                             pad_width = (pad_h, pad_w, (0, 0))
                         elif key == "depth_maps":
